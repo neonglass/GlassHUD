@@ -1,0 +1,18 @@
+<AbsoluteLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="640px"
+    android:layout_height="360px"
+    android:background="#000000"
+    tools:context=".MainActivity" >
+
+    <TextView
+        android:id="@+id/label1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Hello, World, Does this content auto-wrap?"
+        android:textColor="#ffffff"
+        android:textSize="50px"
+        android:layout_x="0px"
+        android:layout_y="0px" />
+
+</AbsoluteLayout>
