@@ -5,6 +5,7 @@
     android:background="#000000"
     tools:context=".MainActivity" >
 
+    <!-- 
     <TextView
         android:id="@+id/label1"
         android:layout_width="wrap_content"
@@ -14,5 +15,13 @@
         android:textSize="50px"
         android:layout_x="0px"
         android:layout_y="0px" />
+        -->
+    <ImageView
+        android:id="@+id/compassneedle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/compass_arrow"
+        android:layout_x="100px"
+        android:layout_y="180px" />
 
 </AbsoluteLayout>
