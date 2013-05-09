@@ -62,23 +62,44 @@ public class MainActivity extends Activity implements SensorEventListener {
 	@Override
 	public void onAccuracyChanged(Sensor sensor, int accuracy) { }
 
+	float DEFAULT_ARROW_ANGLE = 270f;
 	float[] latestAccelData;
 	float[] rot = new float[9];
 	float[] orient = new float[3];
+	float currentHeadingFactor = 0;
+	
+	boolean hi_lo_latch = false;
+	boolean lo_hi_latch = false;
 	@Override
 	public void onSensorChanged(SensorEvent event) {
 		if(event.sensor == magSensor){
-			Log.v(TAG, "Mag sensor reading.");
 			if(latestAccelData == null) return;
 			if(sensorManager.getRotationMatrix(rot, null, latestAccelData, event.values)){
 				sensorManager.getOrientation(rot, orient);
-				float maginc = 180f + (float)(180f * orient[1] / Math.PI);
-				Log.v(TAG, "Inclination determined: " + maginc);
+				float north_dir = DEFAULT_ARROW_ANGLE - (float)(180f * orient[0] / Math.PI);
+				if(north_dir < 0f){
+					north_dir += 360f;
+				}
+				if(north_dir > 361f){
+					north_dir -= 360f;
+				}
+				
+				if(hi_lo_latch && north_dir < 90f){
+					//then we surpassed 360, add one onto the factor
+					currentHeadingFactor++;
+				}
+				if(lo_hi_latch && north_dir > 270f){
+					currentHeadingFactor--;
+				}
+				hi_lo_latch = north_dir > 270f;
+				lo_hi_latch = north_dir < 90f;
+				north_dir += 360f * currentHeadingFactor;
+				
+				Log.v(TAG, "Inclination determined: " + north_dir);
 				compassneedle.clearAnimation();
-				compassneedle.animate().rotation(maginc).setDuration(100).setListener(aniListener);
+				compassneedle.animate().rotation(north_dir).setDuration(100).setListener(aniListener);
 			}
 		}else{
-			Log.v(TAG, "Accell sensor reading.");
 			latestAccelData = event.values.clone();
 		}
 		//
