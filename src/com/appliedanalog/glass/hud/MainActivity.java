@@ -1,4 +1,4 @@
-package com.appliedanalog.glass.generic;
+package com.appliedanalog.glass.hud;
 
 import java.text.NumberFormat;
 
@@ -9,6 +9,7 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.PowerManager;
 import android.app.Activity;
 import android.util.Log;
 import android.view.Window;
@@ -24,15 +25,11 @@ public class MainActivity extends Activity implements SensorEventListener {
 	
 	SensorManager sensorManager;
 	Sensor magSensor;
-	Sensor accelSensor;
 	Sensor gSensor;
+    private PowerManager.WakeLock wakelock;	
 	
-	
-	TextView label1;
 	TextView compasstext;
-	ImageView compassneedle;
-	TextView bartext;
-	ImageView barmeter;
+	TextView acceltext;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -44,14 +41,10 @@ public class MainActivity extends Activity implements SensorEventListener {
 		
 		sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
 		magSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-		accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 		gSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
 		
-		//label1 = (TextView)findViewById(R.id.label1);
-		compassneedle = (ImageView)findViewById(R.id.compassneedle);
 		compasstext = (TextView)findViewById(R.id.compasstext);
-		barmeter = (ImageView)findViewById(R.id.barmeter);
-		bartext = (TextView)findViewById(R.id.bartext);
+		acceltext = (TextView)findViewById(R.id.bartext);
 	}
 
 
@@ -62,67 +55,61 @@ public class MainActivity extends Activity implements SensorEventListener {
 	float[] latestAccelData;
 	float[] rot = new float[9];
 	float[] orient = new float[3];
-	float currentHeadingFactor = 0;
 	
-	boolean hi_lo_latch = false;
-	boolean lo_hi_latch = false;
+	//only display average of every 20 readings
+	double[] headingReadings = new double[20];
+	int readingNo = 0;
+	
 	@Override
 	public void onSensorChanged(SensorEvent event) {
 		if(event.sensor == magSensor){
-			if(latestAccelData == null) return;
-			if(sensorManager.getRotationMatrix(rot, null, latestAccelData, event.values)){
-				sensorManager.getOrientation(rot, orient);
-				float north_dir = DEFAULT_ARROW_ANGLE - (float)(180f * orient[0] / Math.PI);
-				if(north_dir < 0f){
-					north_dir += 360f;
+			double senseNS = -event.values[2]; //N is positive
+			double senseWE = -event.values[0]; //W is positive
+			double angle = 0f;
+			if(senseNS == 0){
+				if(senseWE > 0){
+					angle = 90f;
+				}else{
+					angle = 270f;
 				}
-				if(north_dir > 361f){
-					north_dir -= 360f;
+			}else{
+				angle = Math.atan(senseWE / senseNS);
+				if(senseNS > 0 && senseWE < 0){
+					angle += 2 * Math.PI;
+				}else if(senseNS < 0){
+					angle += Math.PI;
 				}
-				
-				if(hi_lo_latch && north_dir < 90f){
-					//then we surpassed 360, add one onto the factor
-					currentHeadingFactor++;
-				}
-				if(lo_hi_latch && north_dir > 270f){
-					currentHeadingFactor--;
-				}
-				hi_lo_latch = north_dir > 270f;
-				lo_hi_latch = north_dir < 90f;
-				north_dir += 360f * currentHeadingFactor;
-				
-				compassneedle.clearAnimation();
-				compassneedle.animate().rotation(north_dir).setDuration(100).setListener(aniListener);
+			}
+			angle = angle * 180 / Math.PI;
+			
+			headingReadings[readingNo] = angle;
+			readingNo++;
+			if(readingNo == headingReadings.length){
+				double mean = 0.;
+				for(int x = 0; x < headingReadings.length; x++) mean += headingReadings[x];
+				mean /= headingReadings.length;
+				readingNo = 0;
 				
 				//set the text
+				String headingStr = ((int)mean) + "° " + getHeadingString(mean);
 	            Message msg = handler.obtainMessage(COMPASS_VALUE_CHANGED);
 	            Bundle bundle = new Bundle();
-	            bundle.putString(NEW_VALUE, getHeadingString(north_dir));
+	            bundle.putString(NEW_VALUE, headingStr);
 	            msg.setData(bundle);
 	            handler.sendMessage(msg);
 			}
-		}else if(event.sensor == accelSensor){
-			latestAccelData = event.values.clone();
 		}else if(event.sensor == gSensor){
 			float mag = (float)Math.sqrt(event.values[0] * event.values[0] +
 										 event.values[1] * event.values[1] +
 										 event.values[2] * event.values[2]);
 			mag /= 9.81; //convert to g-forces
-			
-			//max barmeter height is 300px, max detectable accell is 2g, do the conversion.
-			float perc = (mag / 2f);
-			Log.v(TAG, "Accelleration magnitude: " + mag + " percent: " + perc);
-			//we also need to reposition the bar since the scale squashes the bar from both ends.
-			int barheight = (int)(perc * 300f);
-			//by default the bar will be centered on the squash, so we need to calculate how much damage half of the squash is doing and compensate for that.
-			barheight /= 2;
-			barmeter.clearAnimation();
-			barmeter.animate().scaleY(perc).y(190 - barheight).setDuration(100).setListener(aniListener);
+			//compensate for error at small forces
+			if(mag < .1f) mag = 0f;
 			
 			//set the text
 			final NumberFormat format = NumberFormat.getNumberInstance();
-			format.setMaximumFractionDigits(1);
-			format.setMinimumFractionDigits(1);
+			format.setMaximumFractionDigits(2);
+			format.setMinimumFractionDigits(2);
             Message msg = handler.obtainMessage(BAR_VALUE_CHANGED);
             Bundle bundle = new Bundle();
             bundle.putString(NEW_VALUE, format.format(mag));
@@ -134,17 +121,23 @@ public class MainActivity extends Activity implements SensorEventListener {
 	@Override
 	protected void onStart(){
 		super.onStart();
+		Log.v(TAG, "HUD Activity -> Start");
 		
 		sensorManager.registerListener(this, magSensor, SensorManager.SENSOR_DELAY_NORMAL);
-		sensorManager.registerListener(this, accelSensor, SensorManager.SENSOR_DELAY_NORMAL);
 		sensorManager.registerListener(this, gSensor, SensorManager.SENSOR_DELAY_NORMAL);
-		//label1.animate().x(50).y(50).setDuration(1000).setListener(aniListener);
+		
+		//acquire wakelock
+    	PowerManager powman = (PowerManager)getSystemService(Context.POWER_SERVICE);
+    	wakelock = powman.newWakeLock(PowerManager.FULL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "HUD");
+    	wakelock.acquire();
 	}
 	
 	@Override
 	protected void onStop(){
 		super.onStop();
+		Log.v(TAG, "HUD Activity -> Stop");
 		sensorManager.unregisterListener(this);
+    	wakelock.release();
 	}
 
 	private String getHeadingString(double head){
@@ -156,25 +149,25 @@ public class MainActivity extends Activity implements SensorEventListener {
 			return "N";
 		}
 		if(comphead < 60){
-			return "NE";
+			return "NW";
 		}
 		if(comphead < 120){
-			return "E";
+			return "W";
 		}
 		if(comphead < 150){
-			return "SE";
+			return "SW";
 		}
 		if(comphead < 210){
 			return "S";
 		}
 		if(comphead < 240){
-			return "SW";
+			return "SE";
 		}
 		if(comphead < 300){
-			return "W";
+			return "E";
 		}
 		if(comphead < 330){
-			return "NW";
+			return "NE";
 		}
 		return "N";
 	}
@@ -190,7 +183,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     			compasstext.setText(msg.getData().getString(NEW_VALUE));
     			break;
     		case BAR_VALUE_CHANGED:
-    			bartext.setText(msg.getData().getString(NEW_VALUE));
+    			acceltext.setText(msg.getData().getString(NEW_VALUE));
     			break;
     		}
     	}

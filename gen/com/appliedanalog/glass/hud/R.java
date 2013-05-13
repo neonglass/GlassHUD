@@ -5,7 +5,7 @@
  * should not be modified by hand.
  */
 
-package com.appliedanalog.glass.generic;
+package com.appliedanalog.glass.hud;
 
 public final class R {
     public static final class attr {
@@ -17,9 +17,7 @@ public final class R {
         public static final int ic_launcher=0x7f020003;
     }
     public static final class id {
-        public static final int barmeter=0x7f060003;
-        public static final int bartext=0x7f060002;
-        public static final int compassneedle=0x7f060001;
+        public static final int bartext=0x7f060001;
         public static final int compasstext=0x7f060000;
     }
     public static final class layout {

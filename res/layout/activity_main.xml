@@ -15,25 +15,35 @@
         android:textSize="50px"
         android:layout_x="0px"
         android:layout_y="50px" />-->
-        
+    
+    <!-- Heading -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Heading:"
+        android:textColor="#ffffff"
+        android:textSize="50px"
+        android:layout_x="20px"
+        android:layout_y="20px" />
     <TextView
         android:id="@+id/compasstext"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="N"
+        android:text="0° N"
         android:textColor="#ffffff"
-        android:textSize="80px"
-        android:layout_x="100px"
-        android:layout_y="10px" />
-        
-    <ImageView
-        android:id="@+id/compassneedle"
+        android:textSize="50px"
+        android:layout_x="350px"
+        android:layout_y="20px" />
+    
+    <!-- G-meter -->
+    <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@drawable/compass_arrow"
-        android:layout_x="10px"
-        android:layout_y="220px" />
-    
+        android:text="G-meter:"
+        android:textColor="#ffffff"
+        android:textSize="50px"
+        android:layout_x="20px"
+        android:layout_y="200px" />
     <TextView
         android:id="@+id/bartext"
         android:layout_width="wrap_content"
@@ -41,21 +51,7 @@
         android:text="0.0G"
         android:textColor="#ffffff"
         android:textSize="50px"
-        android:layout_x="520px"
-        android:layout_y="10px" />
+        android:layout_x="350px"
+        android:layout_y="200px" />
     
-    <ImageView
-        android:layout_width="40px"
-        android:layout_height="300px"
-        android:src="@drawable/bar_meter_outline"
-        android:layout_x="550px"
-        android:layout_y="60px" />
-
-    <ImageView
-        android:id="@+id/barmeter"
-        android:layout_width="40px"
-        android:layout_height="300px"
-        android:src="@drawable/bar_meter"
-        android:layout_x="550px"
-        android:layout_y="60px" />
 </AbsoluteLayout>
