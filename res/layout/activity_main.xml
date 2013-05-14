@@ -35,6 +35,7 @@
         android:layout_alignLeft="@+id/cEnableUpdates"
         android:layout_centerVertical="true"
         android:textColor="#ff0000"
+        android:paddingTop="40dp"
         android:text="Not connected to phone" />
 
     <TextView

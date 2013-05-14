@@ -31,7 +31,7 @@ public class GSensorSource implements InternalSource {
 	
 	@Override
 	public String getTitle() {
-		return "Acceleration:";
+		return "Acceleration";
 	}
 
 	@Override

@@ -1,43 +1,23 @@
 package com.appliedanalog.glass.hud;
 
-import java.text.NumberFormat;
-
-import com.appliedanalog.glass.hud.sources.CompassSource;
-import com.appliedanalog.glass.hud.sources.GSensorSource;
-import com.google.glass.location.GlassLocationManager;
-import com.google.glass.timeline.TimelineHelper;
-import com.google.glass.timeline.TimelineProvider;
-import com.google.glass.util.SettingsSecure;
-import com.google.googlex.glass.common.proto.TimelineItem;
-
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.os.PowerManager;
 import android.app.Activity;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.Window;
 import android.view.WindowManager;
-import android.animation.Animator;
-import android.animation.Animator.AnimatorListener;
 import android.content.ComponentName;
-import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.TextView;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements PhoneSensorComm.BTStateListener {
 	final String TAG = "MainActivity";
 
     //UI Elements
@@ -97,6 +77,13 @@ public class MainActivity extends Activity {
 			}else{
 		    	bWakeLock.setText("Keep Screen On");
 			}
+			if(hudBinder.isBtConnected()){
+				tConnectedToPhone.setText("Connected to phone");
+				tConnectedToPhone.setTextColor(0xff00ff00); //Green
+			}else{
+				tConnectedToPhone.setText("Not connected to phone");
+				tConnectedToPhone.setTextColor(0xffff0000); //Red
+			}
 		}
 	}
 
@@ -108,6 +95,7 @@ public class MainActivity extends Activity {
 			Log.v(TAG, "ServiceConnected");
 			hudBinder = (GlassHUDService.HUDBinder)service;
 			bound = true;
+			hudBinder.setBTListener((PhoneSensorComm.BTStateListener)me); //don't know why this cast is necessary..
 			updateTextFields();
 		}
 
@@ -130,7 +118,26 @@ public class MainActivity extends Activity {
 	public void onStop(){
 		super.onStop();
 		if(bound){
+			hudBinder.setBTListener(null);
 			this.unbindService(mConnection);
 		}
+	}
+
+	final int UPDATE_TEXT_FIELDS = 32832;
+    private Handler handler = new Handler(){
+    	public void handleMessage(Message msg){
+    		switch(msg.what){
+    		case UPDATE_TEXT_FIELDS:
+    			updateTextFields();
+    			break;
+    		}
+    	}
+    };
+    
+	@Override
+	public void btStatusChanged(boolean state) {
+		Message msg = handler.obtainMessage();
+		msg.what = UPDATE_TEXT_FIELDS;
+		handler.sendMessage(msg);
 	}
 }

@@ -6,6 +6,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -29,13 +30,14 @@ public class GlassHUDService extends Service implements SensorEventListener{
 	final int TIMELINE_UPDATE_INTERVAL = 250; //in ms
 	
 	GlassHUDService me;
+	PhoneSensorComm btComm;
     
 	//States
 	SensorManager sensorManager;
 	Sensor magSensor;
 	Sensor accelSensor;
     PowerManager.WakeLock wakelock;
-    SensorConverter senseConverter;
+    SensorDataSink senseConverter;
     boolean enabled = false;
 	
     //Internal sensors representations
@@ -55,7 +57,9 @@ public class GlassHUDService extends Service implements SensorEventListener{
 		
 		compass = new CompassSource();
 		gsensor = new GSensorSource();
-		senseConverter = new SensorConverter();
+		senseConverter = new SensorDataSink();
+		
+		btComm = new PhoneSensorComm(senseConverter);
 	}
 	
 	//handle incoming messages
@@ -101,6 +105,18 @@ public class GlassHUDService extends Service implements SensorEventListener{
 	    	wakelock.release();
 	    	wakelock = null;
 		}
+		
+		public boolean isBtConnected(){
+			return btComm.connected();
+		}
+		
+		/**
+		 * The client is responsible for unregistering himself by calling this function with null when he goes out of context..
+		 * @param stateListener
+		 */
+		public void setBTListener(PhoneSensorComm.BTStateListener stateListener){
+			btComm.setStateListener(stateListener);
+		}
 	}
 	
 	HUDBinder vBinder = new HUDBinder();
@@ -138,7 +154,7 @@ public class GlassHUDService extends Service implements SensorEventListener{
 		sensorManager.registerListener(this, magSensor, SensorManager.SENSOR_DELAY_NORMAL);
 		sensorManager.registerListener(this, accelSensor, SensorManager.SENSOR_DELAY_NORMAL);
 		//startup bluetooth updates
-		
+		btComm.startup();
 		timelineUpdater = new TimelineUpdater();
 		timelineUpdater.start();
 		enabled = true;
@@ -149,12 +165,13 @@ public class GlassHUDService extends Service implements SensorEventListener{
 		if(!enabled) return;
 		sensorManager.unregisterListener(this);
 		//kill bluetooth updates
-		
+		btComm.stop();
 		timelineUpdater.stopUpdates();
 		timelineUpdater = null;
 		enabled = false;
 	}
 	
+	final String HUD_OFF_STRING = "<html><article><section><b>Glass HUD is Off</b></section></article></html>";
 	final String SPREF_STORED_TIMELINE_ID = "storedTimelineId";
 	TimelineItem baseItem = null;
 	int counter = 0;
@@ -166,6 +183,7 @@ public class GlassHUDService extends Service implements SensorEventListener{
 			running = true;
 	    	ContentResolver cr = getContentResolver();
 	    	final TimelineHelper tlHelper = new TimelineHelper();
+	    	
 	    	if(baseItem == null){
 	    		//We store the timeline ID used by the HUD service inside of the shared preferences. We should re-use this timeline
 	    		//card if at all possible.
@@ -179,7 +197,7 @@ public class GlassHUDService extends Service implements SensorEventListener{
 	    			Log.v(TAG, "GlassHUDService: no stashed TimelineItem, must rebuild from scratch.");
 			    	TimelineItem.Builder ntib = tlHelper.createTimelineItemBuilder(me, new SettingsSecure(cr));
 			    	ntib.setTitle("Glass HUD");
-			    	ntib.setHtml("<html>No Content</html>");
+			    	ntib.setHtml(HUD_OFF_STRING);
 			    	baseItem = ntib.build();
 			    	ContentValues vals = TimelineHelper.toContentValues(baseItem);
 			    	cr.insert(TimelineProvider.TIMELINE_URI, vals);
@@ -191,12 +209,13 @@ public class GlassHUDService extends Service implements SensorEventListener{
 	    		}
 	    	}
 			while(running){
-				Log.v(TAG, "Updating HUD card [" + (counter++) + "]");
         		TimelineHelper.Update updater = new TimelineHelper.Update(){
     				@Override
     				public TimelineItem onExecute() {
     		    		TimelineItem.Builder builder = TimelineItem.newBuilder(baseItem);
     		    		builder.setHtml(senseConverter.getHtml());
+    		    		builder.setIsPinned(true);
+    		    		builder.setPinTime(System.currentTimeMillis());
     		    		return tlHelper.updateTimelineItem(me, builder.build(), null, true, false);
     				}
         		};
@@ -204,6 +223,21 @@ public class GlassHUDService extends Service implements SensorEventListener{
         		baseItem = updater.getItem();
         		try{ Thread.sleep(TIMELINE_UPDATE_INTERVAL); }catch(Exception e){}
 			}
+			
+			//Last, but not least, un-pin the card
+    		TimelineHelper.Update updater = new TimelineHelper.Update(){
+				@Override
+				public TimelineItem onExecute() {
+		    		TimelineItem.Builder builder = TimelineItem.newBuilder(baseItem);
+		    		builder.setHtml(HUD_OFF_STRING);
+		    		builder.setIsPinned(false);
+		    		builder.setPinTime(-1); //unpinned pin time
+		    		return tlHelper.updateTimelineItem(me, builder.build(), null, true, false);
+				}
+    		};
+    		TimelineHelper.atomicUpdateTimelineItem(updater);
+    		baseItem = updater.getItem();
+    		try{ Thread.sleep(TIMELINE_UPDATE_INTERVAL); }catch(Exception e){}
 		}
 		
 		public void stopUpdates(){

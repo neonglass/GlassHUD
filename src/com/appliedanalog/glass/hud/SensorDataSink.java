@@ -9,7 +9,7 @@ import java.util.concurrent.Semaphore;
  * @author James
  *
  */
-public class SensorConverter {
+public class SensorDataSink {
 	class SensorReading{
 		public String sensor;
 		public String reading1;
@@ -34,7 +34,7 @@ public class SensorConverter {
 	HashMap<String, SensorReading> readings = new HashMap<String, SensorReading>();
 	Semaphore dataLock = new Semaphore(1);
 	
-	public SensorConverter(){ }
+	public SensorDataSink(){ }
 	
 	public void sensorReading(String name, String val1, String val2){
 		SensorReading reading = readings.get(name);
@@ -52,8 +52,8 @@ public class SensorConverter {
 		}
 	}
 	
-	final String HEAD = "<article><section><table class=\"align-justify\"><tbody>";
-	final String FOOT = "</tbody></table></section></article>";
+	final String HEAD = "<article><section><table class=\"align-justify\">";
+	final String FOOT = "</table></section></article>";
 	final String SECTION_HEAD = "<tr>";
 	final String SECTION_FOOT = "</tr>";
 	
@@ -70,7 +70,7 @@ public class SensorConverter {
 			color = "blue";
 			break;
 		}
-		return "<td class=\"" + color + "\">";
+		return "<td class=\"text-x-small var " + color + "\">";
 	}
 	final String VALUE_FOOT = "</td>";
 	

@@ -54,7 +54,7 @@ public class CompassSource implements InternalSource{
 
 	@Override
 	public String getTitle() {
-		return "Heading:";
+		return "Compass";
 	}
 
 	@Override
