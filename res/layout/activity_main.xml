@@ -1,57 +1,49 @@
-<AbsoluteLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="640px"
-    android:layout_height="360px"
-    android:background="#000000"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="10dp"
+    android:paddingLeft="10dp"
+    android:paddingRight="10dp"
+    android:paddingTop="10dp"
     tools:context=".MainActivity" >
 
-     <!-- 
-    <TextView
-        android:id="@+id/label1"
+    <Button
+        android:id="@+id/cEnableUpdates"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello, World, Does this content auto-wrap?"
-        android:textColor="#ffffff"
-        android:textSize="50px"
-        android:layout_x="0px"
-        android:layout_y="50px" />-->
-    
-    <!-- Heading -->
-    <TextView
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/textView1"
+        android:layout_marginLeft="30dp"
+        android:layout_marginTop="20dp"
+        android:text="Turn on HUD" />
+
+    <Button
+        android:id="@+id/cEnableWakeLock"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Heading:"
-        android:textColor="#ffffff"
-        android:textSize="50px"
-        android:layout_x="20px"
-        android:layout_y="20px" />
+        android:layout_alignBaseline="@+id/cEnableUpdates"
+        android:layout_alignBottom="@+id/cEnableUpdates"
+        android:layout_alignParentRight="true"
+        android:layout_marginRight="30dp"
+        android:text="Keep Screen On" />
+
     <TextView
-        android:id="@+id/compasstext"
+        android:id="@+id/tConnectedToHost"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="0° N"
-        android:textColor="#ffffff"
-        android:textSize="50px"
-        android:layout_x="350px"
-        android:layout_y="20px" />
-    
-    <!-- G-meter -->
+        android:layout_alignLeft="@+id/cEnableUpdates"
+        android:layout_centerVertical="true"
+        android:textColor="#ff0000"
+        android:text="Not connected to phone" />
+
     <TextView
+        android:id="@+id/textView1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="G-meter:"
-        android:textColor="#ffffff"
-        android:textSize="50px"
-        android:layout_x="20px"
-        android:layout_y="200px" />
-    <TextView
-        android:id="@+id/bartext"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="0.0G"
-        android:textColor="#ffffff"
-        android:textSize="50px"
-        android:layout_x="350px"
-        android:layout_y="200px" />
-    
-</AbsoluteLayout>
+        android:layout_alignLeft="@+id/cEnableUpdates"
+        android:layout_alignParentTop="true"
+        android:text="GlassHUD"
+        android:textSize="30dp" />
+
+</RelativeLayout>
