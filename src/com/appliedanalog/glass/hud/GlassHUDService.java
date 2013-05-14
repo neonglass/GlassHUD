@@ -46,7 +46,6 @@ public class GlassHUDService extends Service implements SensorEventListener{
 	public void onCreate(){
 		super.onCreate();
 		me = this;
-		refreshPreferences();
 		
 		//Then sensors
 		sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
@@ -65,7 +64,6 @@ public class GlassHUDService extends Service implements SensorEventListener{
 		super.onStartCommand(intent, flags, startid);
 		
 		if(intent == null) return START_STICKY;
-		refreshPreferences();
 		
 		final String pkg = intent.getStringExtra("pkg");
 		switch(intent.getIntExtra("op", -1)){
@@ -109,11 +107,6 @@ public class GlassHUDService extends Service implements SensorEventListener{
 	@Override
 	public IBinder onBind(Intent intent) {
 		return vBinder;
-	}
-	
-	private void refreshPreferences(){
-		SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
-		//nothing yet.
 	}
 	
 	@Override
@@ -162,6 +155,7 @@ public class GlassHUDService extends Service implements SensorEventListener{
 		enabled = false;
 	}
 	
+	final String SPREF_STORED_TIMELINE_ID = "storedTimelineId";
 	TimelineItem baseItem = null;
 	int counter = 0;
 	class TimelineUpdater extends Thread{
@@ -173,12 +167,28 @@ public class GlassHUDService extends Service implements SensorEventListener{
 	    	ContentResolver cr = getContentResolver();
 	    	final TimelineHelper tlHelper = new TimelineHelper();
 	    	if(baseItem == null){
-		    	TimelineItem.Builder ntib = tlHelper.createTimelineItemBuilder(me, new SettingsSecure(cr));
-		    	ntib.setTitle("Test card");
-		    	ntib.setHtml("<html>Hi</html>");
-		    	baseItem = ntib.build();
-		    	ContentValues vals = TimelineHelper.toContentValues(baseItem);
-		    	cr.insert(TimelineProvider.TIMELINE_URI, vals);
+	    		//We store the timeline ID used by the HUD service inside of the shared preferences. We should re-use this timeline
+	    		//card if at all possible.
+	    		SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(me);
+	    		String stashedTimelineId = pref.getString(SPREF_STORED_TIMELINE_ID, null);
+	    		if(stashedTimelineId != null){
+	    			Log.v(TAG, "GlassHUDService: Loading TimelineItem " + stashedTimelineId);
+	    			baseItem = tlHelper.queryTimelineItem(cr, stashedTimelineId);
+	    		}
+	    		if(baseItem == null){ //either the stashing failed or this is the first time the app is being run
+	    			Log.v(TAG, "GlassHUDService: no stashed TimelineItem, must rebuild from scratch.");
+			    	TimelineItem.Builder ntib = tlHelper.createTimelineItemBuilder(me, new SettingsSecure(cr));
+			    	ntib.setTitle("Glass HUD");
+			    	ntib.setHtml("<html>No Content</html>");
+			    	baseItem = ntib.build();
+			    	ContentValues vals = TimelineHelper.toContentValues(baseItem);
+			    	cr.insert(TimelineProvider.TIMELINE_URI, vals);
+			    	
+			    	//also insert the new ID into the sharedprefs.
+			    	SharedPreferences.Editor editor = pref.edit();
+			    	editor.putString(SPREF_STORED_TIMELINE_ID, baseItem.getId());
+			    	editor.commit();
+	    		}
 	    	}
 			while(running){
 				Log.v(TAG, "Updating HUD card [" + (counter++) + "]");
