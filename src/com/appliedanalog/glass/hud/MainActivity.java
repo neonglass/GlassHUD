@@ -1,3 +1,21 @@
+/*
+    GlassHUD - Heads Up Display for Google Glass
+    Copyright (C) 2013 James Betker
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.appliedanalog.glass.hud;
 
 import android.os.Bundle;
@@ -17,6 +35,13 @@ import android.content.ServiceConnection;
 import android.widget.Button;
 import android.widget.TextView;
 
+/**
+ * The MainActivity for this app is simply a controller for the backing Service. The
+ * Service then provides the UI through the Glass Timeline. This activity allows the
+ * user to turn Service functionality on and off and lock the screen in a permanently
+ * on state.
+ * @author betker
+ */
 public class MainActivity extends Activity implements PhoneSensorComm.BTStateListener {
 	final String TAG = "MainActivity";
 
@@ -26,7 +51,6 @@ public class MainActivity extends Activity implements PhoneSensorComm.BTStateLis
     Button bWakeLock;
     TextView tConnectedToPhone;
     
-	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -134,6 +158,11 @@ public class MainActivity extends Activity implements PhoneSensorComm.BTStateLis
     	}
     };
     
+    /**
+     * Callback from the bluetooth manager that indicates
+     * when a HUD server on a companion device is connected
+     * or disconnected.
+     */
 	@Override
 	public void btStatusChanged(boolean state) {
 		Message msg = handler.obtainMessage();

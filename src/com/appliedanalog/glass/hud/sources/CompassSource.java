@@ -1,3 +1,21 @@
+/*
+    GlassHUD - Heads Up Display for Google Glass
+    Copyright (C) 2013 James Betker
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.appliedanalog.glass.hud.sources;
 
 import java.util.concurrent.Semaphore;
@@ -11,6 +29,12 @@ public class CompassSource implements InternalSource{
 	String compassDirection = "N";
 	Semaphore dataLock = new Semaphore(1);
 	
+	/**
+	 * This implementation only really works when glass is perfectly perpendicular to the ground.
+	 * Unfortunately, the orientation algorithm built into android does not work very well in
+	 * Glass so I couldnt use that.
+	 * @param sense raw magnetometer data.
+	 */
 	public void magReading(float[] sense){
 		double senseNS = -sense[2]; //N is positive
 		double senseWE = -sense[0]; //W is positive
@@ -76,25 +100,25 @@ public class CompassSource implements InternalSource{
 			return "N";
 		}
 		if(comphead < 60){
-			return "NW";
+			return "NE";
 		}
 		if(comphead < 120){
-			return "W";
+			return "E";
 		}
 		if(comphead < 150){
-			return "SW";
+			return "SE";
 		}
 		if(comphead < 210){
 			return "S";
 		}
 		if(comphead < 240){
-			return "SE";
+			return "SW";
 		}
 		if(comphead < 300){
-			return "E";
+			return "W";
 		}
 		if(comphead < 330){
-			return "NE";
+			return "NW";
 		}
 		return "N";
 	}

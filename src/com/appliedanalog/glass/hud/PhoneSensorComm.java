@@ -1,3 +1,21 @@
+/*
+    GlassHUD - Heads Up Display for Google Glass
+    Copyright (C) 2013 James Betker
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.appliedanalog.glass.hud;
 
 import java.io.BufferedReader;
@@ -14,7 +32,6 @@ import android.util.Log;
  * Attempts to establish and maintain a bluetooth connection with the Android phone paired to
  * this glass. If successful, pushes phone sensor data into the sink.
  * @author betker
- *
  */
 public class PhoneSensorComm implements Runnable {
 	final String TAG = "PhoneSensorComm";
@@ -49,6 +66,10 @@ public class PhoneSensorComm implements Runnable {
 		return connected;
 	}
 	
+	/**
+	 * Startup the backing thread for this class which will continually attempt to connect to
+	 * a HUD server on the companion device (phone).
+	 */
     public void startup(){
     	Log.v(TAG, "Starting up BT connection.");
     	
@@ -69,6 +90,7 @@ public class PhoneSensorComm implements Runnable {
     		Log.v(TAG, "No devices paired to this glass, quitting.");
     		System.exit(1);
     	}
+    	//I'm working on the assumption here that only one device is bound to Glass - might need to reconsider in the future.
     	devPhone = devices.iterator().next();
     	Log.v(TAG, "Using BT connection to " + devPhone.getName() + "{" + devPhone.getAddress() + "}");
 
@@ -76,6 +98,9 @@ public class PhoneSensorComm implements Runnable {
     	(new Thread(this)).start();
     }
     
+    /**
+     * Disconnects the bluetooth connection and stops the thread.
+     */
     public void stop(){
     	Log.v(TAG, "Shutting down BT connection.");
     	running = false;
@@ -88,10 +113,17 @@ public class PhoneSensorComm implements Runnable {
     
     /**
      * The incoming sensor data will have the following format:
-     * {name}><{value1}><{value2}
+     * display::{name}::{name}::{name} <- to specify ordering/filtering OR
+     * {name}><{value1}><{value2} <- to specify sensor readings
      * @param line
      */
     private void parsePhoneSensorData(String line){
+    	if(line.startsWith("display::")){
+    		//This is a filter/ordering command.
+    		String[] spl = line.substring(9).split("::");
+    		sink.applyFilter(spl);    
+    		return;
+    	}
     	String[] spl = line.split("><");
     	if(spl.length != 3){
     		Log.v(TAG, "Invalid sensor data in: '" + line + "'");
@@ -103,6 +135,7 @@ public class PhoneSensorComm implements Runnable {
     public void run(){
     	running = true;
     	while(running){
+    		//This loop is basically just to keep the connection alive.
 			try{
 				socket = devPhone.createRfcommSocketToServiceRecord(MY_UUID);
 				Log.v(TAG, "attempting connection...");
@@ -114,10 +147,12 @@ public class PhoneSensorComm implements Runnable {
 				
 				BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 				String line = null;
-				while((line = reader.readLine()) != null){
+				while((line = reader.readLine()) != null){ 
+					//This is the main thread loop.
 					parsePhoneSensorData(line);
 				}
-				Log.v(TAG, "falling out of readLine loop..");
+				Log.v(TAG, "falling out of readLine loop.."); //This should not occur. It is expected that we are forced out of the loop due to
+															  //the socket being closed on us. (Exception)
 				socket.close();
 			}catch(Exception e){
 				Log.v(TAG, "bluetooth connection terminated/failed: " + e.getMessage());
